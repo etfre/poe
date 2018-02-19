@@ -1,9 +1,14 @@
 import numpy as np
+import cv2
+import ellipse
+import math
 
 class CharacterLocation:
     
     def __init__(self, points):
         self.points = points
+        mean = self.points.mean(axis=0)
+        self.center = [int(round(p)) for p in mean]
 
     @property
     def extremes(self):
@@ -15,14 +20,36 @@ class CharacterLocation:
             max_y = max(y, max_y) if max_y else y
         return min_x, max_x, min_y, max_y        
 
-    @property
-    def center(self):
-        mean = self.points.mean(axis=0)
-        return [int(round(p)) for p in mean]
-
 def is_likely_duplicate(l1: CharacterLocation, l2: CharacterLocation):
-    min_x1, max_x1, min_y1, max_y1 = l1.extremes
-    min_x2, max_x2, min_y2, max_y2 = l2.extremes
-    min_overlap = max(abs(min_x1 - min_x2), abs(min_y1 - min_y2)) <= 5 
-    max_overlap = max(abs(max_x1 - max_x2), abs(max_y1 - max_y2)) <= 5 
-    return min_overlap or max_overlap
+    return point_distance(l1.center, l2.center) < 30
+
+def point_distance(p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    asquared = (x2 - x1) ** 2
+    bsquared = (y2 - y1) ** 2
+    return math.sqrt(asquared + bsquared)
+
+def slope(p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    rise = y1 - y2
+    run = x1 - x2
+    return rise / run
+
+def merge_locations(locations):
+    merged = []
+    foo = 8 #todo: think of a real name, idiot
+    for loc in locations:
+        print(cv2.isContourConvex(loc.points))
+        front_slope = slope(loc.points[foo - 1], loc.points[0]) #y
+        front_slope_inverse = 1 / front_slope #x
+        line = []
+        startx, starty = loc.points[0]
+        for i in range(1, 21):
+            incx, incy = i * front_slope_inverse, i * front_slope
+            line.append((startx - incx, starty - incy))
+        loc.points = np.concatenate((np.array(line).astype(int), loc.points))
+        end_slope = slope(loc.points[0], loc.points[foo - 1])
+        merged.append(loc)
+    return merged
