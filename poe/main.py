@@ -26,7 +26,9 @@ def get_character_locations(image):
     red_image = apply_red_filter(image)
     raw_image = red_image
     bilateral_filtered_image = cv2.bilateralFilter(raw_image, 5, 175, 175)
-    edge_detected_image = cv2.Canny(bilateral_filtered_image, 75, 200)
+    edge_detected_image = cv2.Canny(bilateral_filtered_image, 0, 500)
+    cv2.imshow('Objects Detected',edge_detected_image)
+    cv2.waitKey(0)
     _, contours, hierarchy = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     locations: List[CharacterLocation] = []
     for contour_points in contours:
@@ -36,23 +38,28 @@ def get_character_locations(image):
             points = np.array([p[0] for p in contour_points])
             location = CharacterLocation(points) 
             min_x, max_x, min_y, max_y = location.extremes
-            if max_x - min_x > 50:
+            if max_x - min_x > 20:
                 for existing_location in locations:
                     if is_likely_duplicate(location, existing_location):
-                        break
+                        pass
                 else:
                     locations.append(location)
+    print([l.center for l in locations])
     return locations
 
 
 
 def main():
-    # image = screenshot_to_image()
-    image = file_to_image('combat.png')
+    time.sleep(5)
+    image = screenshot_to_image()
+    # image = file_to_image('combat.png')
     locations = get_character_locations(image)
     location_points = np.array([l.points for l in locations])
     raw_image = apply_red_filter(image)
     cv2.drawContours(image, location_points,  -1, (0,0,255), 2)
+    for l in locations:
+        x, y = l.center
+        cv2.rectangle(image, (x, y), (x, y), (0, 255, 0), 3)
     cv2.imshow('Objects Detected',image)
     cv2.waitKey(0)
     

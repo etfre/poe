@@ -1,3 +1,5 @@
+import numpy as np
+
 class CharacterLocation:
     
     def __init__(self, points):
@@ -12,6 +14,11 @@ class CharacterLocation:
             min_y = min(y, min_y) if min_y else y
             max_y = max(y, max_y) if max_y else y
         return min_x, max_x, min_y, max_y        
+
+    @property
+    def center(self):
+        mean = self.points.mean(axis=0)
+        return [int(round(p)) for p in mean]
 
 def is_likely_duplicate(l1: CharacterLocation, l2: CharacterLocation):
     min_x1, max_x1, min_y1, max_y1 = l1.extremes
